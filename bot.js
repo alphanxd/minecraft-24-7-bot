@@ -1,7 +1,7 @@
 const mineflayer = require('mineflayer')
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
 
-function createBot() {
+function startBot() {
 
 const bot = mineflayer.createBot({
   host: "QuantumworldSMP.aternos.me",
@@ -17,70 +17,76 @@ bot.once('spawn', () => {
 
   const mcData = require('minecraft-data')(bot.version)
   const movements = new Movements(bot, mcData)
-
   bot.pathfinder.setMovements(movements)
 
-  // Anti AFK movement
+  // Random walking (looks alive)
   setInterval(() => {
+    const x = bot.entity.position.x + (Math.random()*10 - 5)
+    const z = bot.entity.position.z + (Math.random()*10 - 5)
+    const y = bot.entity.position.y
 
-    const actions = ['forward','back','left','right','jump']
-    const action = actions[Math.floor(Math.random()*actions.length)]
+    const goal = new goals.GoalNear(x, y, z, 1)
+    bot.pathfinder.setGoal(goal)
 
-    bot.setControlState(action, true)
+  }, 20000)
 
-    setTimeout(() => {
-      bot.setControlState(action, false)
-    }, 2000)
-
-  }, 15000)
-
-  // Random head movement (looks human)
+  // Random head movement
   setInterval(() => {
-
-    const yaw = Math.random() * Math.PI * 2
-    const pitch = (Math.random() - 0.5) * Math.PI / 2
-
+    const yaw = Math.random()*Math.PI*2
+    const pitch = (Math.random()-0.5)*Math.PI/2
     bot.look(yaw, pitch, true)
-
-  }, 10000)
+  }, 8000)
 
 })
 
+// Chat reactions
 bot.on('chat', (username, message) => {
 
   if (username === bot.username) return
 
-  if (message === "follow") {
+  const msg = message.toLowerCase()
 
+  if (msg === "hello") bot.chat("Hello " + username + " 👋")
+  if (msg === "alphabot") bot.chat("Yes? I am here.")
+  if (msg === "follow") {
     const player = bot.players[username]
-
     if (!player || !player.entity) return
-
-    const GoalFollow = goals.GoalFollow
-
-    bot.pathfinder.setGoal(new GoalFollow(player.entity, 1), true)
-
-    bot.chat("Following you")
+    bot.chat("Following you!")
+    bot.pathfinder.setGoal(new goals.GoalFollow(player.entity, 1), true)
   }
 
-  if (message === "stop") {
-
+  if (msg === "stop") {
+    bot.chat("Stopping.")
     bot.pathfinder.setGoal(null)
-    bot.chat("Stopping")
+  }
 
+  if (msg === "come") {
+    const player = bot.players[username]
+    if (!player || !player.entity) return
+    bot.chat("Coming!")
+    const p = player.entity.position
+    bot.pathfinder.setGoal(new goals.GoalNear(p.x,p.y,p.z,1))
   }
 
 })
 
-bot.on('end', () => {
-
-  console.log("Disconnected. Reconnecting...")
-  setTimeout(createBot, 5000)
-
+// Respawn
+bot.on('death', () => {
+  console.log("AlphaBot died")
+  setTimeout(() => {
+    bot.chat("I will survive!")
+  }, 3000)
 })
 
+// Reconnect
+bot.on('end', () => {
+  console.log("Disconnected. Reconnecting...")
+  setTimeout(startBot, 10000)
+})
+
+bot.on('kicked', reason => console.log("Kicked:", reason))
 bot.on('error', err => console.log(err))
 
 }
 
-createBot()
+startBot()
