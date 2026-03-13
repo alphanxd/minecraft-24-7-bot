@@ -1,15 +1,18 @@
 {
-  "name": "alpha-bot",
-  "version": "1.0.0",
-  "description": "Minecraft Alpha Bot",
+  "name": "minecraft-afk-bot",
+  "version": "2.2",
+  "description": "Robust AFK bot for Minecraft servers with infinite uptime.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --check index.js"
   },
+  "author": "Lamgerr",
+  "license": "MIT",
   "dependencies": {
-    "mineflayer": "^4.15.0",
-    "mineflayer-pathfinder": "^2.4.0",
-    "mineflayer-pvp": "^1.3.2",
-    "express": "^4.18.2"
+    "express": "^4.18.1",
+    "minecraft-data": "latest",
+    "mineflayer": "latest",
+    "mineflayer-pathfinder": "latest"
   }
 }
