@@ -1,14 +1,13 @@
 {
   "name": "minecraft-online-bot",
   "version": "1.0.0",
-  "description": "A Minecraft bot that stays online 24/7, prevents AFK, and includes useful features.",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "mineflayer": "^4.16.0",
-    "mineflayer-auto-auth": "2.0.0",
-    "mineflayer-pathfinder": "^2.3.2"
+    "mineflayer": "latest",
+    "mineflayer-auto-auth": "latest",
+    "mineflayer-pathfinder": "latest"
   }
-} 
+}
