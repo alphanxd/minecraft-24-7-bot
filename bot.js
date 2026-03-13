@@ -1,88 +1,92 @@
-const mineflayer = require('mineflayer');
-const { pathfinder } = require('mineflayer-pathfinder');
-const autoAuth = require('mineflayer-auto-auth');
-
-// === CONFIGURATION ===
-const config = {
-  host: 'QuantumworldSMP.aternos.me',
-  port: 15376,
-  username: 'Alphabot',
-  version: false, // Set to false so the bot detects your version (1.21.11) automatically
-  password: 'your_password_here', 
-  antiAfk: true,
-  antiAfkInterval: 60000,
-};
+const mineflayer = require('mineflayer')
+const pvp = require('mineflayer-pvp').plugin
+const { pathfinder, Movements } = require('mineflayer-pathfinder')
+const autoeat = require('mineflayer-auto-eat').plugin
 
 function createBot() {
-  const bot = mineflayer.createBot({
-    host: config.host,
-    port: config.port,
-    username: config.username,
-    version: config.version,
-  });
 
-  // Load Plugins
-  bot.loadPlugin(pathfinder);
-  bot.loadPlugin(autoAuth);
+const bot = mineflayer.createBot({
+  host: "QuantumworldSMP.aternos.me",
+  port: 15376,
+  username: "AlphaBot"
+})
 
-  // === Authentication Setup ===
-  bot.on('spawn', () => {
-    // Configure auto-auth plugin
-    if (bot.autoAuth) {
-      bot.autoAuth.options = {
-        password: config.password,
-        logging: true
-      };
+bot.loadPlugin(pathfinder)
+bot.loadPlugin(pvp)
+bot.loadPlugin(autoeat)
+
+bot.once('spawn', () => {
+
+  console.log("✅ AlphaBot joined the server!")
+
+  const mcData = require('minecraft-data')(bot.version)
+  const movements = new Movements(bot, mcData)
+
+  bot.pathfinder.setMovements(movements)
+
+  bot.autoEat.options = {
+    priority: "foodPoints",
+    startAt: 14
+  }
+
+  // Hunt mobs automatically
+  setInterval(() => {
+
+    const mob = bot.nearestEntity(entity =>
+      entity.type === 'mob'
+    )
+
+    if (mob) {
+      bot.pvp.attack(mob)
     }
-    
-    bot.chat('xpcraft programmed me');
-    console.log('Bot has spawned and authenticated.');
-  });
 
-  // === Anti-AFK Movement ===
-  let afkInterval;
-  bot.on('spawn', () => {
-    if (config.antiAfk && !afkInterval) {
-      afkInterval = setInterval(() => {
-        bot.setControlState('jump', true);
-        setTimeout(() => bot.setControlState('jump', false), 500);
-        bot.look(Math.random() * Math.PI * 2, 0, true);
-      }, config.antiAfkInterval);
+  }, 5000)
+
+})
+
+// Attack players who hit the bot
+bot.on('entityHurt', (entity) => {
+
+  if (entity === bot.entity) {
+
+    const attacker = bot.nearestEntity(e => e.type === 'player')
+
+    if (attacker) {
+      bot.chat("You attacked AlphaBot!")
+      bot.pvp.attack(attacker)
     }
-  });
 
-  // === Auto-Respawn ===
-  bot.on('death', () => {
-    setTimeout(() => bot.emit('respawn'), 1000);
-  });
+  }
 
-  // === Auto-Reconnect ===
-  bot.on('end', (reason) => {
-    console.log(`Disconnected: ${reason}. Reconnecting in 5s...`);
-    if (afkInterval) clearInterval(afkInterval);
-    afkInterval = null;
-    setTimeout(createBot, 5000);
-  });
+})
 
-  // === Chat Commands ===
-  bot.on('chat', (username, message) => {
-    if (username === bot.username) return;
-    
-    if (message === ';pos') {
-      const pos = bot.entity.position;
-      bot.chat(`I am at ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`);
-    }
-    
-    if (message === ';stop') {
-      clearInterval(afkInterval);
-      afkInterval = null;
-      bot.chat('Anti-AFK disabled.');
-    }
-  });
+// Chat commands
+bot.on('chat', (username, message) => {
 
-  // === Error Handling ===
-  bot.on('error', (err) => console.log('Bot Error:', err.message));
-  bot.on('kicked', (reason) => console.log('Kicked from server:', reason));
+  if (username === bot.username) return
+
+  if (message === "follow") {
+    const player = bot.players[username]
+    if (!player) return
+
+    const target = player.entity
+    bot.pathfinder.setGoal(new (require('mineflayer-pathfinder').goals.GoalFollow)(target, 1), true)
+  }
+
+  if (message === "stop") {
+    bot.pathfinder.setGoal(null)
+  }
+
+})
+
+// Reconnect if server restarts
+bot.on('end', () => {
+  console.log("🔄 Reconnecting in 5 seconds...")
+  setTimeout(createBot, 5000)
+})
+
+bot.on('error', err => console.log(err))
+
 }
 
-createBot();
+createBot()
