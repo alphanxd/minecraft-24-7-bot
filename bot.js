@@ -19,73 +19,122 @@ bot.once('spawn', () => {
   const movements = new Movements(bot, mcData)
   bot.pathfinder.setMovements(movements)
 
-  // Random walking (looks alive)
+  // exploration wandering
   setInterval(() => {
-    const x = bot.entity.position.x + (Math.random()*10 - 5)
-    const z = bot.entity.position.z + (Math.random()*10 - 5)
+
+    const x = bot.entity.position.x + (Math.random()*20 - 10)
+    const z = bot.entity.position.z + (Math.random()*20 - 10)
     const y = bot.entity.position.y
 
     const goal = new goals.GoalNear(x, y, z, 1)
     bot.pathfinder.setGoal(goal)
 
-  }, 20000)
+  }, randomTime(20000,45000))
 
-  // Random head movement
+  // human-like head movement
   setInterval(() => {
-    const yaw = Math.random()*Math.PI*2
-    const pitch = (Math.random()-0.5)*Math.PI/2
+
+    const yaw = Math.random() * Math.PI * 2
+    const pitch = (Math.random()-0.5) * Math.PI/2
+
     bot.look(yaw, pitch, true)
-  }, 8000)
+
+  }, randomTime(6000,12000))
+
+  // anti AFK
+  setInterval(() => {
+
+    const actions = ['forward','back','left','right','jump']
+    const action = actions[Math.floor(Math.random()*actions.length)]
+
+    bot.setControlState(action,true)
+
+    setTimeout(()=>{
+      bot.setControlState(action,false)
+    }, randomTime(1000,2500))
+
+  }, randomTime(15000,30000))
 
 })
 
-// Chat reactions
-bot.on('chat', (username, message) => {
+bot.on('chat',(username,message)=>{
 
-  if (username === bot.username) return
+  if(username===bot.username) return
 
   const msg = message.toLowerCase()
 
-  if (msg === "hello") bot.chat("Hello " + username + " 👋")
-  if (msg === "alphabot") bot.chat("Yes? I am here.")
-  if (msg === "follow") {
-    const player = bot.players[username]
-    if (!player || !player.entity) return
-    bot.chat("Following you!")
-    bot.pathfinder.setGoal(new goals.GoalFollow(player.entity, 1), true)
+  if(msg==="hello"){
+    delayedChat("Hello "+username+"!")
   }
 
-  if (msg === "stop") {
-    bot.chat("Stopping.")
+  if(msg==="alphabot"){
+    delayedChat("Yes? I'm here.")
+  }
+
+  if(msg==="follow"){
+
+    const player = bot.players[username]
+
+    if(!player || !player.entity) return
+
+    delayedChat("Okay, following you.")
+    bot.pathfinder.setGoal(new goals.GoalFollow(player.entity,1),true)
+
+  }
+
+  if(msg==="stop"){
+    delayedChat("Stopping.")
     bot.pathfinder.setGoal(null)
   }
 
-  if (msg === "come") {
+  if(msg==="come"){
+
     const player = bot.players[username]
-    if (!player || !player.entity) return
-    bot.chat("Coming!")
+    if(!player || !player.entity) return
+
     const p = player.entity.position
+
+    delayedChat("Coming.")
     bot.pathfinder.setGoal(new goals.GoalNear(p.x,p.y,p.z,1))
+
   }
 
 })
 
-// Respawn
-bot.on('death', () => {
+bot.on('death',()=>{
   console.log("AlphaBot died")
-  setTimeout(() => {
-    bot.chat("I will survive!")
-  }, 3000)
 })
 
-// Reconnect
-bot.on('end', () => {
-  console.log("Disconnected. Reconnecting...")
-  setTimeout(startBot, 10000)
+bot.on('kicked',(reason)=>{
+  console.log("Kicked:",reason)
 })
 
-bot.on('kicked', reason => console.log("Kicked:", reason))
-bot.on('error', err => console.log(err))
+bot.on('end',()=>{
+
+  console.log("Disconnected")
+
+  const delay = randomTime(15000,35000)
+
+  console.log("Reconnecting in "+delay/1000+" seconds")
+
+  setTimeout(()=>{
+    startBot()
+  },delay)
+
+})
+
+bot.on('error',err=>console.log(err))
+
+function delayedChat(text){
+  const delay = randomTime(1000,4000)
+  setTimeout(()=>{
+    bot.chat(text)
+  },delay)
+}
+
+function randomTime(min,max){
+  return Math.floor(Math.random()*(max-min)+min)
+}
 
 }
 
