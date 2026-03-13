@@ -6,12 +6,13 @@ const express = require('express')
 const app = express()
 const PORT = process.env.PORT || 3000
 
+// Render web server
 app.get("/", (req, res) => {
-  res.send("Alpha Quantum Bot Running")
+  res.send("Alpha_Bot is running")
 })
 
 app.listen(PORT, () => {
-  console.log("Web server running")
+  console.log("Web server running on port " + PORT)
 })
 
 function createBot() {
@@ -19,7 +20,7 @@ function createBot() {
 const bot = mineflayer.createBot({
   host: "QuantumworldSMP.aternos.me",
   port: 15376,
-  username: "ALPHA_Bot",
+  username: "Alpha_Bot",
   auth: "offline",
   version: false
 })
@@ -29,14 +30,14 @@ bot.loadPlugin(pvp)
 
 bot.once('spawn', () => {
 
-  console.log("🤖 Alpha Bot joined server")
+  console.log("🤖 Alpha_Bot joined the server")
 
   const mcData = require('minecraft-data')(bot.version)
   const defaultMove = new Movements(bot, mcData)
 
   bot.pathfinder.setMovements(defaultMove)
 
-  // follow you
+  // follow TheQuantxD
   setInterval(() => {
 
     const player = bot.players["TheQuantxD"]
@@ -47,10 +48,11 @@ bot.once('spawn', () => {
 
     bot.pathfinder.setGoal(goal, true)
 
-  }, 5000)
+  }, 4000)
 
 })
 
+// attack mobs
 bot.on('physicsTick', () => {
 
   const mob = bot.nearestEntity(e => e.type === 'mob')
@@ -61,6 +63,7 @@ bot.on('physicsTick', () => {
 
 })
 
+// auto login
 bot.on("spawn", () => {
   setTimeout(() => {
     bot.chat("/login chalol78")
@@ -68,7 +71,7 @@ bot.on("spawn", () => {
 })
 
 bot.on("end", () => {
-  console.log("Bot disconnected. Reconnecting in 10s...")
+  console.log("Bot disconnected. Reconnecting in 10 seconds...")
   setTimeout(createBot, 10000)
 })
 
