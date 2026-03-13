@@ -1,7 +1,5 @@
 const mineflayer = require('mineflayer')
-const pvp = require('mineflayer-pvp').plugin
-const { pathfinder, Movements } = require('mineflayer-pathfinder')
-const autoeat = require('mineflayer-auto-eat').plugin
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
 
 function createBot() {
 
@@ -12,77 +10,73 @@ const bot = mineflayer.createBot({
 })
 
 bot.loadPlugin(pathfinder)
-bot.loadPlugin(pvp)
-bot.loadPlugin(autoeat)
 
 bot.once('spawn', () => {
 
-  console.log("✅ AlphaBot joined the server!")
+  console.log("AlphaBot joined the server")
 
   const mcData = require('minecraft-data')(bot.version)
   const movements = new Movements(bot, mcData)
 
   bot.pathfinder.setMovements(movements)
 
-  bot.autoEat.options = {
-    priority: "foodPoints",
-    startAt: 14
-  }
-
-  // Hunt mobs automatically
+  // Anti AFK movement
   setInterval(() => {
 
-    const mob = bot.nearestEntity(entity =>
-      entity.type === 'mob'
-    )
+    const actions = ['forward','back','left','right','jump']
+    const action = actions[Math.floor(Math.random()*actions.length)]
 
-    if (mob) {
-      bot.pvp.attack(mob)
-    }
+    bot.setControlState(action, true)
 
-  }, 5000)
+    setTimeout(() => {
+      bot.setControlState(action, false)
+    }, 2000)
 
-})
+  }, 15000)
 
-// Attack players who hit the bot
-bot.on('entityHurt', (entity) => {
+  // Random head movement (looks human)
+  setInterval(() => {
 
-  if (entity === bot.entity) {
+    const yaw = Math.random() * Math.PI * 2
+    const pitch = (Math.random() - 0.5) * Math.PI / 2
 
-    const attacker = bot.nearestEntity(e => e.type === 'player')
+    bot.look(yaw, pitch, true)
 
-    if (attacker) {
-      bot.chat("You attacked AlphaBot!")
-      bot.pvp.attack(attacker)
-    }
-
-  }
+  }, 10000)
 
 })
 
-// Chat commands
 bot.on('chat', (username, message) => {
 
   if (username === bot.username) return
 
   if (message === "follow") {
-    const player = bot.players[username]
-    if (!player) return
 
-    const target = player.entity
-    bot.pathfinder.setGoal(new (require('mineflayer-pathfinder').goals.GoalFollow)(target, 1), true)
+    const player = bot.players[username]
+
+    if (!player || !player.entity) return
+
+    const GoalFollow = goals.GoalFollow
+
+    bot.pathfinder.setGoal(new GoalFollow(player.entity, 1), true)
+
+    bot.chat("Following you")
   }
 
   if (message === "stop") {
+
     bot.pathfinder.setGoal(null)
+    bot.chat("Stopping")
+
   }
 
 })
 
-// Reconnect if server restarts
 bot.on('end', () => {
-  console.log("🔄 Reconnecting in 5 seconds...")
+
+  console.log("Disconnected. Reconnecting...")
   setTimeout(createBot, 5000)
+
 })
 
 bot.on('error', err => console.log(err))
