@@ -1,92 +1,82 @@
-{
-  "name": "AFK Bot",
-  "bot-account": {
-    "username": "Alpha_Bot",
-    "password": "",
-    "type": "offline"
-  },
-  "server": {
-    "ip": "QuantumworldSMP.aternos.me",
-    "port": 15376,
-    "version": "",
-    "try-creative": false
-  },
-  "position": {
-    "enabled": true,
-    "x": 0,
-    "y": 100,
-    "z": 0
-  },
-  "utils": {
-    "auto-auth": {
-      "enabled": true,
-      "password": "chalol78"
-    },
-    "anti-afk": {
-      "enabled": true,
-      "sneak": true
-    },
-    "chat-messages": {
-      "enabled": true,
-      "repeat": true,
-      "repeat-delay": 120,
-      "messages": [
-        "I'm a regular player",
-        "Subscribe to Slobos!",
-        "I like to play Minecraft!"
-      ]
-    },
-    "chat-log": true,
-    "auto-reconnect": true,
-    "auto-reconnect-delay": 2000,
-    "max-reconnect-delay": 120000,
-    "periodic-rejoin": {
-      "enabled": false,
-      "min-interval": 20,
-      "max-interval": 60
-    }
-  },
-  "movement": {
-    "enabled": true,
-    "circle-walk": {
-      "enabled": true,
-      "radius": 4,
-      "speed": 3000
-    },
-    "look-around": {
-      "enabled": true,
-      "interval": 5000
-    },
-    "random-jump": {
-      "enabled": true,
-      "interval": 10000
-    }
-  },
-  "modules": {
-    "avoidMobs": true,
-    "combat": true,
-    "beds": false,
-    "chat": true,
-    "console-commands": true
-  },
-  "combat": {
-    "attack-mobs": true,
-    "auto-eat": true
-  },
-  "beds": {
-    "pick-up-day": false,
-    "place-night": false
-  },
-  "discord": {
-    "enabled": false,
-    "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL_HERE",
-    "events": {
-      "connect": true,
-      "disconnect": true,
-      "chat": false
-    }
-  },
-  "chat": {
-    "respond": true
-  }
+const mineflayer = require('mineflayer')
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
+const pvp = require('mineflayer-pvp').plugin
+const express = require('express')
+
+const app = express()
+const PORT = process.env.PORT || 3000
+
+// Render web server
+app.get("/", (req, res) => {
+  res.send("Alpha_Bot is running")
+})
+
+app.listen(PORT, () => {
+  console.log("Web server running on port " + PORT)
+})
+
+function createBot() {
+
+const bot = mineflayer.createBot({
+  host: "VoidPulseSMP.aternos.me",
+  port: 15376,
+  username: "Alpha_Bot",
+  auth: "offline",
+  version: false
+})
+
+bot.loadPlugin(pathfinder)
+bot.loadPlugin(pvp)
+
+bot.once('spawn', () => {
+
+  console.log("🤖 Alpha_Bot joined the server")
+
+  const mcData = require('minecraft-data')(bot.version)
+  const defaultMove = new Movements(bot, mcData)
+
+  bot.pathfinder.setMovements(defaultMove)
+
+  // follow TheQuantxD
+  setInterval(() => {
+
+    const player = bot.players["TheQuantxD"]
+
+    if (!player || !player.entity) return
+
+    const goal = new goals.GoalFollow(player.entity, 2)
+
+    bot.pathfinder.setGoal(goal, true)
+
+  }, 4000)
+
+})
+
+// attack mobs
+bot.on('physicsTick', () => {
+
+  const mob = bot.nearestEntity(e => e.type === 'mob')
+
+  if (!mob) return
+
+  bot.pvp.attack(mob)
+
+})
+
+// auto login
+bot.on("spawn", () => {
+  setTimeout(() => {
+    bot.chat("/login chalol78")
+  }, 3000)
+})
+
+bot.on("end", () => {
+  console.log("Bot disconnected. Reconnecting in 10 seconds...")
+  setTimeout(createBot, 10000)
+})
+
+bot.on("error", console.log)
+
 }
+
+createBot()
